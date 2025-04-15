@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "github.com/nireo/mci/pb";
+
+message Job {
+  string repo_url = 1;
+  string commit_sha = 2;
+  string id = 3;
+}
+
+message Empty {}
+
+service AgentService {
+  rpc ExecuteJob(Job) returns (Empty) {}
+}
