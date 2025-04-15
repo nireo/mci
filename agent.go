@@ -16,6 +16,9 @@ import (
 	"github.com/docker/docker/client"
 )
 
+type LogReporter func(jobID string, stageName string, logLine string)
+type StatusReporter func(jobID string, status JobStatus, errMsg string)
+
 // agent handles actually executing all of the jobs
 func setupAgentWorkspace(repoURL, commitSHA string) (string, error) {
 	workspaceDir, err := os.MkdirTemp("", "mci-agent-ws-*")
@@ -56,7 +59,7 @@ func readPipelineDefinition(filePath string) (*Pipeline, error) {
 	return pipeline, nil
 }
 
-func executeJob(ctx context.Context, job Job) error {
+func executeJob(ctx context.Context, job Job, statusReporter StatusReporter, logReporter LogReporter) error {
 	workspaceDir, err := setupAgentWorkspace(job.RepoCloneURL, job.CommitSHA)
 	if err != nil {
 		log.Printf("[%s] error: %v", job.ID, err)
@@ -72,31 +75,36 @@ func executeJob(ctx context.Context, job Job) error {
 	}
 	log.Printf("[%s] pipeline definition loaded. image: %s", job.ID, pipeline.Image)
 
-	// TODO: init docker
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	if err != nil {
+		log.Printf("[%s] error: %v", job.ID, err)
+		statusReporter(job.ID, StatusFailure, fmt.Sprintf("failed to create client: %s", err))
+		return err
+	}
+	defer cli.Close()
 
-	log.Printf("[%s] Job finished.", job.ID)
+	status, err := runPipelineSteps(ctx, cli, job, pipeline, workspaceDir, logReporter)
+	if err != nil {
+		statusReporter(job.ID, StatusFailure, fmt.Sprintf("failed to run pipeline: %s", err))
+		return err
+	}
+
+	statusReporter(job.ID, status, "")
+	log.Printf("[%s] job finished.", job.ID)
 	return nil
 }
 
-func streamLogToServer(jobID string, stageName string, logLine string) {
-	log.Printf("[%s] %s: %s", jobID, stageName, logLine)
-}
-
-func reportJobStatus(jobID string, status JobStatus, errMsg string) {
-	log.Printf("[%s] Final Status: %s, Error: %s", jobID, status, errMsg)
-}
-
 type logStreamer struct {
-	jobID     string
-	stageName string
-	prefix    string // Optional prefix per line
+	jobID       string
+	stageName   string
+	prefix      string
+	logReporter LogReporter
 }
 
 func (ls *logStreamer) Write(p []byte) (n int, err error) {
-	lines := strings.Split(string(p), "\n")
-	for _, line := range lines {
+	for line := range strings.SplitSeq(string(p), "\n") {
 		if line != "" {
-			streamLogToServer(ls.jobID, ls.stageName, ls.prefix+line)
+			ls.logReporter(ls.jobID, ls.stageName, ls.prefix+line)
 		}
 	}
 	return len(p), nil
@@ -107,6 +115,7 @@ func runPipelineSteps(
 	cli *client.Client, job Job,
 	pipeline *Pipeline,
 	workspaceDir string,
+	logReporter LogReporter,
 ) (JobStatus, error) {
 	log.Printf("[%s] pulling image: %s", job.ID, pipeline.Image)
 	pullReader, err := cli.ImagePull(ctx, pipeline.Image, image.PullOptions{})
@@ -163,11 +172,11 @@ func runPipelineSteps(
 
 	for _, stage := range pipeline.Stages {
 		log.Printf("[%s] === Running Stage: %s ===", job.ID, stage.Name)
-		streamLogToServer(job.ID, stage.Name, fmt.Sprintf("=== Entering Stage: %s ===", stage.Name))
+		logReporter(job.ID, stage.Name, fmt.Sprintf("=== Entering Stage: %s ===", stage.Name))
 
 		for _, command := range stage.Commands {
 			log.Printf("[%s] executing command: %s", job.ID, command)
-			streamLogToServer(job.ID, stage.Name, fmt.Sprintf("$ %s", command))
+			logReporter(job.ID, stage.Name, fmt.Sprintf("$ %s", command))
 
 			execConfig := container.ExecOptions{
 				AttachStdout: true,
@@ -186,7 +195,7 @@ func runPipelineSteps(
 			}
 			defer hijackedResp.Close()
 
-			logWriter := &logStreamer{jobID: job.ID, stageName: stage.Name, prefix: ""}
+			logWriter := &logStreamer{jobID: job.ID, stageName: stage.Name, prefix: "", logReporter: logReporter}
 			_, err = io.Copy(logWriter, hijackedResp.Reader)
 			if err != nil {
 				log.Printf("[%s] warning: Error copying log stream: %v", job.ID, err)
@@ -198,15 +207,15 @@ func runPipelineSteps(
 			}
 
 			log.Printf("[%s] command '%s' finished with exit code %d", job.ID, command, inspectResp.ExitCode)
-			streamLogToServer(job.ID, stage.Name, fmt.Sprintf("Exit code: %d", inspectResp.ExitCode))
+			logReporter(job.ID, stage.Name, fmt.Sprintf("Exit code: %d", inspectResp.ExitCode))
 
 			if inspectResp.ExitCode != 0 {
 				finalErr := fmt.Errorf("command '%s' failed with exit code %d in stage '%s'", command, inspectResp.ExitCode, stage.Name)
-				streamLogToServer(job.ID, stage.Name, finalErr.Error())
+				logReporter(job.ID, stage.Name, finalErr.Error())
 				return StatusFailure, finalErr // Stop pipeline execution on failure
 			}
 		}
-		streamLogToServer(job.ID, stage.Name, fmt.Sprintf("=== Exiting Stage: %s ===", stage.Name))
+		logReporter(job.ID, stage.Name, fmt.Sprintf("=== Exiting Stage: %s ===", stage.Name))
 	}
 
 	return StatusSuccess, nil

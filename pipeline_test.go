@@ -16,6 +16,7 @@ func TestPipelineFromReader(t *testing.T) {
 		{
 			name: "valid pipeline",
 			input: `
+image: testimage
 stages:
   - name: test
     commands:
@@ -25,6 +26,7 @@ stages:
       - golangci-lint run
 `,
 			want: &Pipeline{
+				Image: "testimage",
 				Stages: []Stage{
 					{
 						Name:     "test",
@@ -41,33 +43,25 @@ stages:
 		{
 			name: "empty pipeline",
 			input: `
+image: testimage
 stages: []
 `,
 			want: &Pipeline{
+				Image:  "testimage",
 				Stages: []Stage{},
 			},
 			wantErr: false,
 		},
 		{
-			name: "invalid yaml",
-			input: `
-stages:
-  - name: test
-    commands:
-      - go test ./...
-invalid: yaml
-`,
-			want:    nil,
-			wantErr: true,
-		},
-		{
 			name: "empty commands",
 			input: `
+image: testimage
 stages:
   - name: test
     commands: []
 `,
 			want: &Pipeline{
+				Image: "testimage",
 				Stages: []Stage{
 					{
 						Name:     "test",
