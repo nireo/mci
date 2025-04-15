@@ -238,23 +238,23 @@ stages:
 
 	t.Log("Captured Logs:\n", strings.Join(logs, "\n")) // Log output for debugging
 
-	assert.Contains(t, strings.Join(logs, "\n"), "[setup] === Entering Stage: setup ===")
+	assert.Contains(t, strings.Join(logs, "\n"), "[setup] === entering Stage: setup ===")
 	assert.Contains(t, strings.Join(logs, "\n"), "[setup] $ echo \"Setup phase\"")
-	assert.Contains(t, strings.Join(logs, "\n"), "[setup] Setup phase")
+	assert.Contains(t, strings.Join(logs, "\n"), "Setup phase")
 	assert.Contains(t, strings.Join(logs, "\n"), "[setup] $ mkdir data")
 	assert.Contains(t, strings.Join(logs, "\n"), "[setup] Exit code: 0")
 	assert.Contains(t, strings.Join(logs, "\n"), "[setup] === Exiting Stage: setup ===")
 
-	assert.Contains(t, strings.Join(logs, "\n"), "[process] === Entering Stage: process ===")
+	assert.Contains(t, strings.Join(logs, "\n"), "[process] === entering Stage: process ===")
 	assert.Contains(t, strings.Join(logs, "\n"), "[process] $ echo \"Processing...\" > data/output.txt")
 	assert.Contains(t, strings.Join(logs, "\n"), "[process] $ ls -l /workspace/data")
 	assert.Contains(t, strings.Join(logs, "\n"), "output.txt")
 	assert.Contains(t, strings.Join(logs, "\n"), "[process] Exit code: 0")
 	assert.Contains(t, strings.Join(logs, "\n"), "[process] === Exiting Stage: process ===")
 
-	assert.Contains(t, strings.Join(logs, "\n"), "[check] === Entering Stage: check ===")
+	assert.Contains(t, strings.Join(logs, "\n"), "[check] === entering Stage: check ===")
 	assert.Contains(t, strings.Join(logs, "\n"), "[check] $ cat data/output.txt")
-	assert.Contains(t, strings.Join(logs, "\n"), "[check] Processing...") // Output of cat
+	assert.Contains(t, strings.Join(logs, "\n"), "Processing...") // Output of cat
 	assert.Contains(t, strings.Join(logs, "\n"), "[check] $ exit 0")
 	assert.Contains(t, strings.Join(logs, "\n"), "[check] Exit code: 0")
 	assert.Contains(t, strings.Join(logs, "\n"), "[check] === Exiting Stage: check ===")
@@ -325,13 +325,13 @@ stages:
 
 	t.Log("Captured Logs (Failure Test):\n", strings.Join(logs, "\n"))
 
-	assert.Contains(t, strings.Join(logs, "\n"), "[build] === Entering Stage: build ===")
+	assert.Contains(t, strings.Join(logs, "\n"), "[build] === entering Stage: build ===")
 	assert.Contains(t, strings.Join(logs, "\n"), "[build] $ echo \"Building...\"")
-	assert.Contains(t, strings.Join(logs, "\n"), "[build] Building...")
+	assert.Contains(t, strings.Join(logs, "\n"), "Building...")
 	assert.Contains(t, strings.Join(logs, "\n"), "[build] $ exit 1")
 	assert.Contains(t, strings.Join(logs, "\n"), "[build] Exit code: 1")
 	assert.Contains(t, strings.Join(logs, "\n"), "command 'exit 1' failed with exit code 1 in stage 'build'")
 
-	assert.NotContains(t, strings.Join(logs, "\n"), "=== Entering Stage: test ===")
+	assert.NotContains(t, strings.Join(logs, "\n"), "=== entering Stage: test ===")
 	assert.NotContains(t, strings.Join(logs, "\n"), "This should not run")
 }

@@ -172,7 +172,7 @@ func runPipelineSteps(
 
 	for _, stage := range pipeline.Stages {
 		log.Printf("[%s] === Running Stage: %s ===", job.ID, stage.Name)
-		logReporter(job.ID, stage.Name, fmt.Sprintf("=== Entering Stage: %s ===", stage.Name))
+		logReporter(job.ID, stage.Name, fmt.Sprintf("=== entering Stage: %s ===", stage.Name))
 
 		for _, command := range stage.Commands {
 			log.Printf("[%s] executing command: %s", job.ID, command)
