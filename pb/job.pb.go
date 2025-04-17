@@ -81,6 +81,50 @@ func (x *Job) GetId() string {
 	return ""
 }
 
+type Log struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Log) Reset() {
+	*x = Log{}
+	mi := &file_job_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Log) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Log) ProtoMessage() {}
+
+func (x *Log) ProtoReflect() protoreflect.Message {
+	mi := &file_job_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Log.ProtoReflect.Descriptor instead.
+func (*Log) Descriptor() ([]byte, []int) {
+	return file_job_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Log) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type Empty struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -89,7 +133,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_job_proto_msgTypes[1]
+	mi := &file_job_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -101,7 +145,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_job_proto_msgTypes[1]
+	mi := &file_job_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,7 +158,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_job_proto_rawDescGZIP(), []int{1}
+	return file_job_proto_rawDescGZIP(), []int{2}
 }
 
 var File_job_proto protoreflect.FileDescriptor
@@ -126,11 +170,16 @@ const file_job_proto_rawDesc = "" +
 	"\brepo_url\x18\x01 \x01(\tR\arepoUrl\x12\x1d\n" +
 	"\n" +
 	"commit_sha\x18\x02 \x01(\tR\tcommitSha\x12\x0e\n" +
-	"\x02id\x18\x03 \x01(\tR\x02id\"\a\n" +
-	"\x05Empty2,\n" +
-	"\fAgentService\x12\x1c\n" +
+	"\x02id\x18\x03 \x01(\tR\x02id\"\x1f\n" +
+	"\x03Log\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\a\n" +
+	"\x05Empty2%\n" +
+	"\x05Agent\x12\x1c\n" +
 	"\n" +
-	"ExecuteJob\x12\x04.Job\x1a\x06.Empty\"\x00B\x19Z\x17github.com/nireo/mci/pbb\x06proto3"
+	"ExecuteJob\x12\x04.Job\x1a\x06.Empty\"\x002&\n" +
+	"\x04Core\x12\x1e\n" +
+	"\n" +
+	"StreamLogs\x12\x04.Log\x1a\x06.Empty\"\x00(\x01B\x19Z\x17github.com/nireo/mci/pbb\x06proto3"
 
 var (
 	file_job_proto_rawDescOnce sync.Once
@@ -144,16 +193,19 @@ func file_job_proto_rawDescGZIP() []byte {
 	return file_job_proto_rawDescData
 }
 
-var file_job_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_job_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_job_proto_goTypes = []any{
 	(*Job)(nil),   // 0: Job
-	(*Empty)(nil), // 1: Empty
+	(*Log)(nil),   // 1: Log
+	(*Empty)(nil), // 2: Empty
 }
 var file_job_proto_depIdxs = []int32{
-	0, // 0: AgentService.ExecuteJob:input_type -> Job
-	1, // 1: AgentService.ExecuteJob:output_type -> Empty
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	0, // 0: Agent.ExecuteJob:input_type -> Job
+	1, // 1: Core.StreamLogs:input_type -> Log
+	2, // 2: Agent.ExecuteJob:output_type -> Empty
+	2, // 3: Core.StreamLogs:output_type -> Empty
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -170,9 +222,9 @@ func file_job_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_job_proto_rawDesc), len(file_job_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_job_proto_goTypes,
 		DependencyIndexes: file_job_proto_depIdxs,

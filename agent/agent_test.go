@@ -1,4 +1,4 @@
-package mci // Assuming tests are in the same package as the agent code
+package agent
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/google/uuid"
+	"github.com/nireo/mci"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -209,7 +210,7 @@ stages:
 	pipeline, err := readPipelineDefinition(filepath.Join(workspaceDir, testCiFileName))
 	require.NoError(t, err)
 
-	job := Job{
+	job := mci.Job{
 		ID:        uuid.NewString(),
 		CommitSHA: commitSHA,
 	}
@@ -231,7 +232,7 @@ stages:
 	finalStatus, finalErr := runPipelineSteps(ctx, cli, job, pipeline, workspaceDir, mockLogReporter)
 
 	require.NoError(t, finalErr)
-	assert.Equal(t, StatusSuccess, finalStatus)
+	assert.Equal(t, mci.StatusSuccess, finalStatus)
 
 	logsMu.Lock()
 	defer logsMu.Unlock()
@@ -283,18 +284,15 @@ stages:
 	commitSHA, err := addAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add failing pipeline")
 	require.NoError(t, err)
 
-	// Setup workspace
 	repoURL := "file://" + filepath.ToSlash(repoPath)
 	workspaceDir, err := setupAgentWorkspace(repoURL, commitSHA)
 	require.NoError(t, err)
 	defer os.RemoveAll(workspaceDir)
 
-	// Read pipeline
 	pipeline, err := readPipelineDefinition(filepath.Join(workspaceDir, testCiFileName))
 	require.NoError(t, err)
 
-	// Prepare Job struct
-	job := Job{
+	job := mci.Job{
 		ID:        uuid.NewString(),
 		CommitSHA: commitSHA,
 	}
@@ -315,8 +313,8 @@ stages:
 
 	finalStatus, finalErr := runPipelineSteps(ctx, cli, job, pipeline, workspaceDir, mockLogReporter)
 
-	require.Error(t, finalErr) // Expecting an error
-	assert.Equal(t, StatusFailure, finalStatus)
+	require.Error(t, finalErr)
+	assert.Equal(t, mci.StatusFailure, finalStatus)
 	assert.Contains(t, finalErr.Error(), "failed with exit code 1")
 	assert.Contains(t, finalErr.Error(), "stage 'build'")
 

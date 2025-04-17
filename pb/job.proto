@@ -8,8 +8,16 @@ message Job {
   string id = 3;
 }
 
+message Log {
+  string message = 1;
+}
+
 message Empty {}
 
-service AgentService {
+service Agent {
   rpc ExecuteJob(Job) returns (Empty) {}
+}
+
+service Core {
+  rpc StreamLogs(stream Log) returns (Empty) {}
 }

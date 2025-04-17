@@ -19,103 +19,198 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentService_ExecuteJob_FullMethodName = "/AgentService/ExecuteJob"
+	Agent_ExecuteJob_FullMethodName = "/Agent/ExecuteJob"
 )
 
-// AgentServiceClient is the client API for AgentService service.
+// AgentClient is the client API for Agent service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type AgentServiceClient interface {
+type AgentClient interface {
 	ExecuteJob(ctx context.Context, in *Job, opts ...grpc.CallOption) (*Empty, error)
 }
 
-type agentServiceClient struct {
+type agentClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewAgentServiceClient(cc grpc.ClientConnInterface) AgentServiceClient {
-	return &agentServiceClient{cc}
+func NewAgentClient(cc grpc.ClientConnInterface) AgentClient {
+	return &agentClient{cc}
 }
 
-func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *Job, opts ...grpc.CallOption) (*Empty, error) {
+func (c *agentClient) ExecuteJob(ctx context.Context, in *Job, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, AgentService_ExecuteJob_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Agent_ExecuteJob_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// AgentServiceServer is the server API for AgentService service.
-// All implementations must embed UnimplementedAgentServiceServer
+// AgentServer is the server API for Agent service.
+// All implementations must embed UnimplementedAgentServer
 // for forward compatibility.
-type AgentServiceServer interface {
+type AgentServer interface {
 	ExecuteJob(context.Context, *Job) (*Empty, error)
-	mustEmbedUnimplementedAgentServiceServer()
+	mustEmbedUnimplementedAgentServer()
 }
 
-// UnimplementedAgentServiceServer must be embedded to have
+// UnimplementedAgentServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedAgentServiceServer struct{}
+type UnimplementedAgentServer struct{}
 
-func (UnimplementedAgentServiceServer) ExecuteJob(context.Context, *Job) (*Empty, error) {
+func (UnimplementedAgentServer) ExecuteJob(context.Context, *Job) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecuteJob not implemented")
 }
-func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
-func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
+func (UnimplementedAgentServer) mustEmbedUnimplementedAgentServer() {}
+func (UnimplementedAgentServer) testEmbeddedByValue()               {}
 
-// UnsafeAgentServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to AgentServiceServer will
+// UnsafeAgentServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to AgentServer will
 // result in compilation errors.
-type UnsafeAgentServiceServer interface {
-	mustEmbedUnimplementedAgentServiceServer()
+type UnsafeAgentServer interface {
+	mustEmbedUnimplementedAgentServer()
 }
 
-func RegisterAgentServiceServer(s grpc.ServiceRegistrar, srv AgentServiceServer) {
-	// If the following call pancis, it indicates UnimplementedAgentServiceServer was
+func RegisterAgentServer(s grpc.ServiceRegistrar, srv AgentServer) {
+	// If the following call pancis, it indicates UnimplementedAgentServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&AgentService_ServiceDesc, srv)
+	s.RegisterService(&Agent_ServiceDesc, srv)
 }
 
-func _AgentService_ExecuteJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Agent_ExecuteJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Job)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AgentServiceServer).ExecuteJob(ctx, in)
+		return srv.(AgentServer).ExecuteJob(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AgentService_ExecuteJob_FullMethodName,
+		FullMethod: Agent_ExecuteJob_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentServiceServer).ExecuteJob(ctx, req.(*Job))
+		return srv.(AgentServer).ExecuteJob(ctx, req.(*Job))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
+// Agent_ServiceDesc is the grpc.ServiceDesc for Agent service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var AgentService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "AgentService",
-	HandlerType: (*AgentServiceServer)(nil),
+var Agent_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Agent",
+	HandlerType: (*AgentServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "ExecuteJob",
-			Handler:    _AgentService_ExecuteJob_Handler,
+			Handler:    _Agent_ExecuteJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
+	Metadata: "job.proto",
+}
+
+const (
+	Core_StreamLogs_FullMethodName = "/Core/StreamLogs"
+)
+
+// CoreClient is the client API for Core service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type CoreClient interface {
+	StreamLogs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[Log, Empty], error)
+}
+
+type coreClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewCoreClient(cc grpc.ClientConnInterface) CoreClient {
+	return &coreClient{cc}
+}
+
+func (c *coreClient) StreamLogs(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[Log, Empty], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Core_ServiceDesc.Streams[0], Core_StreamLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Log, Empty]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Core_StreamLogsClient = grpc.ClientStreamingClient[Log, Empty]
+
+// CoreServer is the server API for Core service.
+// All implementations must embed UnimplementedCoreServer
+// for forward compatibility.
+type CoreServer interface {
+	StreamLogs(grpc.ClientStreamingServer[Log, Empty]) error
+	mustEmbedUnimplementedCoreServer()
+}
+
+// UnimplementedCoreServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedCoreServer struct{}
+
+func (UnimplementedCoreServer) StreamLogs(grpc.ClientStreamingServer[Log, Empty]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamLogs not implemented")
+}
+func (UnimplementedCoreServer) mustEmbedUnimplementedCoreServer() {}
+func (UnimplementedCoreServer) testEmbeddedByValue()              {}
+
+// UnsafeCoreServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to CoreServer will
+// result in compilation errors.
+type UnsafeCoreServer interface {
+	mustEmbedUnimplementedCoreServer()
+}
+
+func RegisterCoreServer(s grpc.ServiceRegistrar, srv CoreServer) {
+	// If the following call pancis, it indicates UnimplementedCoreServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&Core_ServiceDesc, srv)
+}
+
+func _Core_StreamLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(CoreServer).StreamLogs(&grpc.GenericServerStream[Log, Empty]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Core_StreamLogsServer = grpc.ClientStreamingServer[Log, Empty]
+
+// Core_ServiceDesc is the grpc.ServiceDesc for Core service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Core_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "Core",
+	HandlerType: (*CoreServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamLogs",
+			Handler:       _Core_StreamLogs_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "job.proto",
 }
