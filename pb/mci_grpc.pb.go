@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.30.1
-// source: job.proto
+// source: mci.proto
 
 package pb
 
@@ -117,7 +117,7 @@ var Agent_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "job.proto",
+	Metadata: "mci.proto",
 }
 
 const (
@@ -212,5 +212,5 @@ var Core_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "job.proto",
+	Metadata: "mci.proto",
 }

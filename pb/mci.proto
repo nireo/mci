@@ -2,6 +2,14 @@ syntax = "proto3";
 
 option go_package = "github.com/nireo/mci/pb";
 
+enum JobStatus {
+  PENDING = 0;
+  SUCCESS = 1;
+  FAILURE = 2;
+  IN_PROGRESS = 3;
+  ERROR = 4;
+}
+
 message Job {
   string repo_url = 1;
   string commit_sha = 2;

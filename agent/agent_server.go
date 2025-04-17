@@ -8,6 +8,7 @@ import (
 
 type AgentServer struct {
 	pb.UnimplementedAgentServer
+	jobQueue chan *pb.Job
 }
 
 func (s *AgentServer) ExecuteJob(ctx context.Context, req *pb.Job) (*pb.Empty, error) {

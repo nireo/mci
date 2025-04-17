@@ -13,7 +13,7 @@ import (
 
 	"github.com/docker/docker/client"
 	"github.com/google/uuid"
-	"github.com/nireo/mci"
+	"github.com/nireo/mci/pb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -210,9 +210,9 @@ stages:
 	pipeline, err := readPipelineDefinition(filepath.Join(workspaceDir, testCiFileName))
 	require.NoError(t, err)
 
-	job := mci.Job{
-		ID:        uuid.NewString(),
-		CommitSHA: commitSHA,
+	job := &pb.Job{
+		Id:        uuid.NewString(),
+		CommitSha: commitSHA,
 	}
 
 	var logs []string
@@ -232,7 +232,7 @@ stages:
 	finalStatus, finalErr := runPipelineSteps(ctx, cli, job, pipeline, workspaceDir, mockLogReporter)
 
 	require.NoError(t, finalErr)
-	assert.Equal(t, mci.StatusSuccess, finalStatus)
+	assert.Equal(t, pb.JobStatus_SUCCESS, finalStatus)
 
 	logsMu.Lock()
 	defer logsMu.Unlock()
@@ -292,9 +292,9 @@ stages:
 	pipeline, err := readPipelineDefinition(filepath.Join(workspaceDir, testCiFileName))
 	require.NoError(t, err)
 
-	job := mci.Job{
-		ID:        uuid.NewString(),
-		CommitSHA: commitSHA,
+	job := &pb.Job{
+		Id:        uuid.NewString(),
+		CommitSha: commitSHA,
 	}
 
 	var logs []string
@@ -314,7 +314,7 @@ stages:
 	finalStatus, finalErr := runPipelineSteps(ctx, cli, job, pipeline, workspaceDir, mockLogReporter)
 
 	require.Error(t, finalErr)
-	assert.Equal(t, mci.StatusFailure, finalStatus)
+	assert.Equal(t, pb.JobStatus_FAILURE, finalStatus)
 	assert.Contains(t, finalErr.Error(), "failed with exit code 1")
 	assert.Contains(t, finalErr.Error(), "stage 'build'")
 
