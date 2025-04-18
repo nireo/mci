@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -16,7 +17,85 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/nireo/mci"
 	"github.com/nireo/mci/pb"
+	"google.golang.org/grpc/metadata"
 )
+
+type grpcLogStream struct {
+	client  pb.CoreClient
+	streams map[string]pb.Core_StreamLogsClient
+	mu      sync.Mutex
+}
+
+func (gl *grpcLogStream) registerStream(ctx context.Context, jobID string) error {
+	gl.mu.Lock()
+	defer gl.mu.Unlock()
+
+	if _, exists := gl.streams[jobID]; exists {
+		log.Printf("stream already registered %s", jobID)
+		return fmt.Errorf("stream is already registered")
+	}
+
+	md := metadata.New(map[string]string{"job_id": jobID})
+	// this will also overwrite any existing metadata meaning there is no need to worry about
+	// duplicate/conflicting metadata.
+	streamCtx := metadata.NewOutgoingContext(ctx, md)
+
+	stream, err := gl.client.StreamLogs(streamCtx)
+	if err != nil {
+		return fmt.Errorf("failed to initiate log stream for job %s: %w", jobID, err)
+	}
+
+	gl.streams[jobID] = stream
+	log.Printf("%s] stream registered successfully.", jobID)
+
+	return nil
+}
+
+func (gl *grpcLogStream) unregisterStream(jobID string) {
+	gl.mu.Lock()
+	defer gl.mu.Unlock()
+
+	stream, exists := gl.streams[jobID]
+	if !exists {
+		log.Printf("[%s] attempted to unregister a non-existent stream.", jobID)
+		return
+	}
+
+	_, err := stream.CloseAndRecv()
+	if err != nil {
+		if err != io.EOF {
+			log.Printf("[stream-%s] error closing log stream: %v", jobID, err)
+		}
+	} else {
+		log.Printf("[stream-%s] stream closed successfully.", jobID)
+	}
+
+	delete(gl.streams, jobID)
+}
+
+func (gs *grpcLogStream) ReportLog(jobID string, stageName string, logLine string) {
+	gs.mu.Lock()
+	stream, exists := gs.streams[jobID]
+	gs.mu.Unlock()
+
+	if !exists {
+		log.Printf("[stream-%s] ERROR: No active stream found for reporting log: %s", jobID, logLine)
+		return
+	}
+
+	entry := &pb.Log{
+		Message: logLine,
+	}
+
+	if err := stream.Send(entry); err != nil {
+		log.Printf("[stream-%s] ERROR sending log entry: %v. Line: %s", jobID, err, logLine)
+		if err == io.EOF {
+			log.Printf("[LogStream-%s] Stream closed by server.", jobID)
+		}
+
+		go gs.unregisterStream(jobID)
+	}
+}
 
 type LogReporter func(jobID string, stageName string, logLine string)
 type StatusReporter func(jobID string, status pb.JobStatus, errMsg string)
@@ -221,4 +300,43 @@ func runPipelineSteps(
 	}
 
 	return pb.JobStatus_SUCCESS, nil
+}
+
+type Agent struct {
+	logStreams grpcLogStream
+}
+
+func NewAgent() *Agent {
+	return &Agent{
+		logStreams: grpcLogStream{
+			streams: make(map[string]pb.Core_StreamLogsClient),
+		},
+	}
+}
+
+func (a *Agent) handleJob(job *pb.Job) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	err := a.logStreams.registerStream(ctx, job.Id)
+	if err != nil {
+		return err
+	}
+	defer a.logStreams.unregisterStream(job.Id)
+
+	statusReporter := func(jobID string, status pb.JobStatus, errMsg string) {
+		log.Printf("StatusReporter: Job %s, Status %s, Error: %s", jobID, status.String(), errMsg)
+	}
+
+	go func() {
+		log.Printf("[%s] starting job execution", job.Id)
+		err := executeJob(ctx, job, statusReporter, a.logStreams.ReportLog)
+		if err != nil {
+			log.Printf("[%s] job execution returned error: %v", job.Id, err)
+		} else {
+			log.Printf("[%s] job execution completed.", job.Id)
+		}
+	}()
+
+	return nil
 }
