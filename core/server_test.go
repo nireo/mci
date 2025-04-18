@@ -26,7 +26,7 @@ func setupTestServer(t *testing.T) (client pb.CoreClient, dir string, cleanup fu
 	lis := bufconn.Listen(1024 * 1024)
 	s := grpc.NewServer()
 	coreserver := &Server{
-		baseLogDir: dir,
+		BaseLogDir: dir,
 	}
 	pb.RegisterCoreServer(s, coreserver)
 	go func() {

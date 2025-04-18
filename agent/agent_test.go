@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 	"github.com/nireo/mci/pb"
+	"github.com/nireo/mci/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,80 +24,20 @@ const (
 	testCiFileName  = ".mci.yaml"
 )
 
-func createTestGitRepo(t *testing.T) (string, func(), error) {
-	t.Helper()
-	baseTmpDir := t.TempDir()
-	repoPath := filepath.Join(baseTmpDir, testRepoDirName)
-
-	if err := os.Mkdir(repoPath, 0755); err != nil {
-		return "", func() {}, fmt.Errorf("failed to create repo dir: %w", err)
-	}
-
-	cmdInit := exec.Command("git", "init")
-	cmdInit.Dir = repoPath
-	if output, err := cmdInit.CombinedOutput(); err != nil {
-		return "", func() {}, fmt.Errorf("git init failed: %w\nOutput: %s", err, string(output))
-	}
-
-	cmdConfigUser := exec.Command("git", "config", "user.name", "Test User")
-	cmdConfigUser.Dir = repoPath
-	if err := cmdConfigUser.Run(); err != nil {
-		return "", func() {}, fmt.Errorf("git config user.name failed: %w", err)
-	}
-
-	cmdConfigEmail := exec.Command("git", "config", "user.email", "test@example.com")
-	cmdConfigEmail.Dir = repoPath
-	if err := cmdConfigEmail.Run(); err != nil {
-		return "", func() {}, fmt.Errorf("git config user.email failed: %w", err)
-	}
-
-	cleanup := func() {}
-	return repoPath, cleanup, nil
-}
-
-func addAndCommitFile(t *testing.T, repoPath, filename, content, commitMessage string) (string, error) {
-	t.Helper()
-	filePath := filepath.Join(repoPath, filename)
-	if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-		return "", fmt.Errorf("failed to write file %s: %w", filename, err)
-	}
-
-	cmdAdd := exec.Command("git", "add", filename)
-	cmdAdd.Dir = repoPath
-	if output, err := cmdAdd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("git add %s failed: %w\nOutput: %s", filename, err, string(output))
-	}
-
-	cmdCommit := exec.Command("git", "commit", "-m", commitMessage)
-	cmdCommit.Dir = repoPath
-	if output, err := cmdCommit.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("git commit failed: %w\nOutput: %s", err, string(output))
-	}
-
-	cmdSha := exec.Command("git", "rev-parse", "HEAD")
-	cmdSha.Dir = repoPath
-	shaBytes, err := cmdSha.Output()
-	if err != nil {
-		return "", fmt.Errorf("git rev-parse HEAD failed: %w", err)
-	}
-
-	return strings.TrimSpace(string(shaBytes)), nil
-}
-
 // test that the repository is correctly cloned etc.
 func TestSetupWorkspace_Integration(t *testing.T) {
-	repoPath, _, err := createTestGitRepo(t)
+	repoPath, _, err := testutil.CreateTestGitRepo(t, "testrepo1")
 	require.NoError(t, err)
 
 	initialContent := "Initial content"
 	initialFile := "readme.md"
-	commitSHA1, err := addAndCommitFile(t, repoPath, initialFile, initialContent, "Initial commit")
+	commitSHA1, err := testutil.AddAndCommitFile(t, repoPath, initialFile, initialContent, "Initial commit")
 	require.NoError(t, err)
 	require.NotEmpty(t, commitSHA1)
 
 	secondContent := "Second version"
 	secondFile := "data.txt"
-	commitSHA2, err := addAndCommitFile(t, repoPath, secondFile, secondContent, "Second commit")
+	commitSHA2, err := testutil.AddAndCommitFile(t, repoPath, secondFile, secondContent, "Second commit")
 	require.NoError(t, err)
 	require.NotEmpty(t, commitSHA2)
 	require.NotEqual(t, commitSHA1, commitSHA2)
@@ -142,7 +83,7 @@ func TestSetupWorkspace_Integration(t *testing.T) {
 }
 
 func TestReadPipelineDefinition_Integration(t *testing.T) {
-	repoPath, _, err := createTestGitRepo(t)
+	repoPath, _, err := testutil.CreateTestGitRepo(t, "testrepo2")
 	require.NoError(t, err)
 
 	pipelineContent := `
@@ -156,7 +97,7 @@ stages:
     commands:
       - echo "Testing..."
 `
-	commitSHA, err := addAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add pipeline file")
+	commitSHA, err := testutil.AddAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add pipeline file")
 	require.NoError(t, err)
 
 	repoURL := "file://" + filepath.ToSlash(repoPath)
@@ -180,7 +121,7 @@ stages:
 }
 
 func TestRunPipelineSteps_Integration_Success(t *testing.T) {
-	repoPath, _, err := createTestGitRepo(t)
+	repoPath, _, err := testutil.CreateTestGitRepo(t, "testrepo3")
 	require.NoError(t, err)
 
 	pipelineContent := `
@@ -199,7 +140,7 @@ stages:
       - cat data/output.txt
       - exit 0
 `
-	commitSHA, err := addAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add successful pipeline")
+	commitSHA, err := testutil.AddAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add successful pipeline")
 	require.NoError(t, err)
 
 	repoURL := "file://" + filepath.ToSlash(repoPath)
@@ -267,7 +208,7 @@ stages:
 }
 
 func TestRunPipelineSteps_Integration_Failure(t *testing.T) {
-	repoPath, _, err := createTestGitRepo(t)
+	repoPath, _, err := testutil.CreateTestGitRepo(t, "testrepo4")
 	require.NoError(t, err)
 
 	pipelineContent := `
@@ -281,7 +222,7 @@ stages:
     commands:
       - echo "This should not run"
 `
-	commitSHA, err := addAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add failing pipeline")
+	commitSHA, err := testutil.AddAndCommitFile(t, repoPath, testCiFileName, pipelineContent, "Add failing pipeline")
 	require.NoError(t, err)
 
 	repoURL := "file://" + filepath.ToSlash(repoPath)

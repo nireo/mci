@@ -13,7 +13,7 @@ import (
 
 type Server struct {
 	pb.UnimplementedCoreServer
-	baseLogDir string
+	BaseLogDir string
 }
 
 func (s *Server) StreamLogs(stream pb.Core_StreamLogsServer) error {
@@ -33,7 +33,7 @@ func (s *Server) StreamLogs(stream pb.Core_StreamLogsServer) error {
 	jobID = jobIdValues[0]
 	log.Printf("[%s] log stream connection opened", jobID)
 
-	jobFilePath := filepath.Join(s.baseLogDir, jobID)
+	jobFilePath := filepath.Join(s.BaseLogDir, jobID)
 	file, err := os.OpenFile(jobFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0640)
 	if err != nil {
 		return err

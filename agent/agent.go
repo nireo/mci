@@ -306,15 +306,16 @@ type Agent struct {
 	logStreams grpcLogStream
 }
 
-func NewAgent() *Agent {
+func NewAgent(cl pb.CoreClient) *Agent {
 	return &Agent{
 		logStreams: grpcLogStream{
 			streams: make(map[string]pb.Core_StreamLogsClient),
+			client:  cl,
 		},
 	}
 }
 
-func (a *Agent) handleJob(job *pb.Job) error {
+func (a *Agent) HandleJob(job *pb.Job) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
