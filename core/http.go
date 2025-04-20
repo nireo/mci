@@ -1,4 +1,4 @@
-package mci
+package core
 
 import (
 	"context"
@@ -9,21 +9,17 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/nireo/mci/pb"
 )
 
-// webhook gets information from a given
-type githubPushWebhook struct {
-	after  string // the SHA of the most recent commit on ref after the push
-	before string // the SHA of the most reecnt commit on ref before the push
-}
-
-type Server struct {
+type HttpServer struct {
 	httpServer      *http.Server
 	shutdownTimeout time.Duration
 }
 
 // NewServer creates a new Server instance.
-func NewServer(addr string, handler http.Handler, shutdownTimeout time.Duration) *Server {
+func NewServer(addr string, handler http.Handler, shutdownTimeout time.Duration) *HttpServer {
 	httpServer := &http.Server{
 		Addr:    addr,
 		Handler: handler,
@@ -33,14 +29,14 @@ func NewServer(addr string, handler http.Handler, shutdownTimeout time.Duration)
 		IdleTimeout:  120 * time.Second,
 	}
 
-	return &Server{
+	return &HttpServer{
 		httpServer:      httpServer,
 		shutdownTimeout: shutdownTimeout,
 	}
 }
 
 // Start runs the server in a new goroutine.
-func (s *Server) Start(wg *sync.WaitGroup) <-chan error {
+func (s *HttpServer) Start(wg *sync.WaitGroup) <-chan error {
 	if wg == nil {
 		panic("Server.Start requires a non-nil WaitGroup") // Enforce proper usage
 	}
@@ -70,7 +66,7 @@ func (s *Server) Start(wg *sync.WaitGroup) <-chan error {
 }
 
 // Shutdown attempts to gracefully shut down the server.
-func (s *Server) Shutdown() error {
+func (s *HttpServer) Shutdown() error {
 	log.Println("Server shutdown requested. Initiating graceful shutdown...")
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
@@ -84,7 +80,7 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
-func webhookHandler(w http.ResponseWriter, r *http.Request) {
+func createJobHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
@@ -93,8 +89,8 @@ func webhookHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	var data githubPushWebhook
-	err = json.Unmarshal(body, &data)
+	var data *pb.Job
+	err = json.Unmarshal(body, data)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		log.Printf("invalid json: %s", err)
