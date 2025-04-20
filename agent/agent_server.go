@@ -8,9 +8,10 @@ import (
 
 type AgentServer struct {
 	pb.UnimplementedAgentServer
-	jobQueue chan *pb.Job
+	agent *Agent
 }
 
 func (s *AgentServer) ExecuteJob(ctx context.Context, req *pb.Job) (*pb.Empty, error) {
-	return nil, nil
+	err := s.agent.HandleJob(req)
+	return &pb.Empty{}, err
 }
