@@ -140,7 +140,9 @@ func readPipelineDefinition(filePath string) (*mci.Pipeline, error) {
 	return pipeline, nil
 }
 
-func executeJob(ctx context.Context, job *pb.Job, statusReporter StatusReporter, logReporter LogReporter) error {
+func (a *Agent) executeJob(ctx context.Context, job *pb.Job, statusReporter StatusReporter, logReporter LogReporter) error {
+	defer a.logStreams.unregisterStream(job.Id)
+
 	workspaceDir, err := setupAgentWorkspace(job.RepoUrl, job.CommitSha)
 	if err != nil {
 		log.Printf("[%s] error: %v", job.Id, err)
@@ -316,14 +318,14 @@ func NewAgent(cl pb.CoreClient) *Agent {
 }
 
 func (a *Agent) HandleJob(job *pb.Job) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	// defer cancel()
+	ctx := context.Background()
 
 	err := a.logStreams.registerStream(ctx, job.Id)
 	if err != nil {
 		return err
 	}
-	defer a.logStreams.unregisterStream(job.Id)
 
 	statusReporter := func(jobID string, status pb.JobStatus, errMsg string) {
 		log.Printf("StatusReporter: Job %s, Status %s, Error: %s", jobID, status.String(), errMsg)
@@ -331,7 +333,7 @@ func (a *Agent) HandleJob(job *pb.Job) error {
 
 	go func() {
 		log.Printf("[%s] starting job execution", job.Id)
-		err := executeJob(ctx, job, statusReporter, a.logStreams.ReportLog)
+		err := a.executeJob(ctx, job, statusReporter, a.logStreams.ReportLog)
 		if err != nil {
 			log.Printf("[%s] job execution returned error: %v", job.Id, err)
 		} else {

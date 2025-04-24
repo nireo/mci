@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -100,5 +99,11 @@ stages:
 	content, err := os.ReadFile(filepath.Join(dir, jobID))
 	require.NoError(t, err)
 
-	fmt.Fprintln(os.Stderr, string(content))
+	strC := string(content)
+
+	// easier to just check a few key strings to ensure the logs
+	require.Contains(t, strC, "Processing...")
+	require.Contains(t, strC, "Setup phase")
+	require.Contains(t, strC, "output.txt")
+	require.Contains(t, strC, "entering")
 }
