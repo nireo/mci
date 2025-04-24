@@ -14,25 +14,40 @@ import (
 )
 
 type HttpServer struct {
-	httpServer      *http.Server
+	HttpServer      *http.Server
 	shutdownTimeout time.Duration
+	jm              *JobManager
+	pool            *AgentPool
 }
 
 // NewServer creates a new Server instance.
-func NewServer(addr string, handler http.Handler, shutdownTimeout time.Duration) *HttpServer {
+func NewServer(
+	addr string,
+	shutdownTimeout time.Duration,
+	jm *JobManager,
+	pool *AgentPool,
+) *HttpServer {
+	hs := &HttpServer{
+		shutdownTimeout: shutdownTimeout,
+		jm:              jm,
+		pool:            pool,
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /jobs", hs.listJobs)
+	mux.HandleFunc("POST /jobs", hs.createJobHandler)
+
 	httpServer := &http.Server{
 		Addr:    addr,
-		Handler: handler,
+		Handler: mux,
 		// enforce timeouts to avoid resource leaks
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	return &HttpServer{
-		httpServer:      httpServer,
-		shutdownTimeout: shutdownTimeout,
-	}
+	hs.HttpServer = httpServer
+
+	return hs
 }
 
 // Start runs the server in a new goroutine.
@@ -48,8 +63,8 @@ func (s *HttpServer) Start(wg *sync.WaitGroup) <-chan error {
 		defer wg.Done()
 		defer close(errChan)
 
-		log.Printf("Server starting and listening on %s\n", s.httpServer.Addr)
-		err := s.httpServer.ListenAndServe()
+		log.Printf("Server starting and listening on %s\n", s.HttpServer.Addr)
+		err := s.HttpServer.ListenAndServe()
 
 		if err != nil && err != http.ErrServerClosed {
 			log.Printf("Server error: %v\n", err)
@@ -71,7 +86,7 @@ func (s *HttpServer) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 	defer cancel()
 
-	err := s.httpServer.Shutdown(ctx)
+	err := s.HttpServer.Shutdown(ctx)
 	if err != nil {
 		log.Printf("Graceful shutdown failed: %v\n", err)
 		return fmt.Errorf("server shutdown failed: %w", err)
@@ -80,7 +95,7 @@ func (s *HttpServer) Shutdown() error {
 	return nil
 }
 
-func createJobHandler(w http.ResponseWriter, r *http.Request) {
+func (hs *HttpServer) createJobHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Error reading request body", http.StatusBadRequest)
@@ -96,4 +111,19 @@ func createJobHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("invalid json: %s", err)
 		return
 	}
+
+	info := hs.jm.AddJob(data)
+
+	if err := hs.pool.SelectAndExecuteJob(context.Background(), info.Job); err != nil {
+		http.Error(w, "Error selecting agent", http.StatusInternalServerError)
+		log.Printf("invalid select and execute: %s", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (hs *HttpServer) listJobs(w http.ResponseWriter, r *http.Request) {
+	jobs := hs.jm.ListJobs()
+	json.NewEncoder(w).Encode(jobs)
 }

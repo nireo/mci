@@ -11,10 +11,10 @@ import (
 )
 
 type JobInfo struct {
-	Job       *pb.Job
-	Status    pb.JobStatus
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Job       *pb.Job      `json:"job"`
+	Status    pb.JobStatus `json:"status"`
+	CreatedAt time.Time    `json:"created_at"`
+	UpdatedAt time.Time    `json:"updated_at"`
 }
 
 type JobManager struct {
