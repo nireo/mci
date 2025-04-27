@@ -32,3 +32,7 @@ help:
 	@echo "  make gen    - Generate Go gRPC code from .proto files"
 	@echo "  make clean  - Remove generated Go code"
 	@echo "  make help   - Show this help message"
+
+.PHONY: test
+test:
+	go test -v ./...

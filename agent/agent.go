@@ -15,8 +15,8 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
-	"github.com/nireo/mci"
 	"github.com/nireo/mci/pb"
+	"github.com/nireo/mci/pipeline"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -123,14 +123,14 @@ func setupAgentWorkspace(repoURL, commitSHA string) (string, error) {
 	return workspaceDir, nil
 }
 
-func readPipelineDefinition(filePath string) (*mci.Pipeline, error) {
+func readPipelineDefinition(filePath string) (*pipeline.Pipeline, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("could not open pipeline file '%s': %w", filePath, err)
 	}
 	defer f.Close()
 
-	pipeline, err := mci.PipelineFromReader(f)
+	pipeline, err := pipeline.PipelineFromReader(f)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse pipeline file '%s': %w", filePath, err)
 	}
@@ -196,7 +196,7 @@ func (ls *logStreamer) Write(p []byte) (n int, err error) {
 func runPipelineSteps(
 	ctx context.Context,
 	cli *client.Client, job *pb.Job,
-	pipeline *mci.Pipeline,
+	pipeline *pipeline.Pipeline,
 	workspaceDir string,
 	logReporter LogReporter,
 ) (pb.JobStatus, error) {

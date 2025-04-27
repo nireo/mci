@@ -1,4 +1,4 @@
-package mci
+package pipeline
 
 import (
 	"bytes"
