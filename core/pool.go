@@ -22,6 +22,19 @@ type AgentPool struct {
 	grpcDialOpts []grpc.DialOption
 }
 
+// NewAgentPoolWithClients inits with a map such that testing pools can be created easier.
+func NewAgentPoolWithClients(clients map[string]pb.AgentClient) (*AgentPool, error) {
+	addrs := make([]string, 0, len(clients))
+	for addr := range clients {
+		addrs = append(addrs, addr)
+	}
+
+	return &AgentPool{
+		agents:  addrs,
+		clients: clients,
+	}, nil
+}
+
 func NewAgentPool(agentAddresses []string) (*AgentPool, error) {
 	if len(agentAddresses) == 0 {
 		return nil, errors.New("agent pool requires at least one agent address")
