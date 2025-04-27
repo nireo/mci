@@ -1,0 +1,66 @@
+{{ template "layout.html" . }}
+
+{{ define "title" }}Job List & Creation - {{ block "title" . }}{{ end }}{{ end }}
+
+{{ define "content" }}
+<div class="content-wrapper"> <section>
+        <h2>Create New Job</h2>
+        <form action="/jobs" method="POST">
+            <div>
+                <label for="repo_url">Repository URL:</label>
+                <input type="url" id="repo_url" name="repo_url" required placeholder="https://github.com/user/repo.git">
+            </div>
+            <div>
+                <label for="commit_sha">Commit SHA:</label>
+                <input type="text" id="commit_sha" name="commit_sha" required placeholder="latest or specific sha">
+            </div>
+            <button type="submit">Create Job</button>
+        </form>
+        {{ if .FormError }}
+            <p class="form-error">{{ .FormError }}</p>
+        {{ end }}
+    </section>
+
+    <section>
+        <h2>Existing Jobs</h2>
+        {{ if .Jobs }}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Repo URL</th>
+                        <th>Commit SHA</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .Jobs }}
+                    <tr>
+                        <td title="{{ .Job.Id }}">{{ printf "%.8s..." .Job.Id }}</td>
+                        <td title="{{ .Job.RepoUrl }}">{{ .Job.RepoUrl }}</td>
+                        <td title="{{ .Job.CommitSha }}">{{ printf "%.10s..." .Job.CommitSha }}</td>
+                        <td>
+                            <span class="status-badge status-{{ .Status }}">
+                                {{ .Status }}
+                            </span>
+                        </td>
+                        <td>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</td>
+                        <td>{{ .UpdatedAt.Format "2006-01-02 15:04:05" }}</td>
+                        <td>
+                            <a href="/jobs/{{ .Job.Id }}/logs">View Logs</a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+        {{ else }}
+        <p>No jobs found.</p>
+        {{ end }}
+    </section>
+</div>
+{{ end }}

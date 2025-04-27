@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ block "title" . }}MCI Job Runner{{ end }}</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MCI Job Runner</h1>
+            <nav>
+                <a href="/jobs">View Jobs</a>
+                </nav>
+        </header>
+
+        <main>
+            {{ block "content" . }}
+            <p>Welcome to the MCI Job Runner.</p>
+            {{ end }}
+        </main>
+
+        <footer>
+            <p>&copy; {{ .CurrentYear }} MCI System</p>
+        </footer>
+    </div>
+</body>
+</html>

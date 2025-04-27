@@ -1,0 +1,230 @@
+/* Basic Reset & Body Styles */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  line-height: 1.6;
+  background-color: #f4f7f6;
+  color: #333;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+/* Container */
+.container {
+  max-width: 960px; /* Limit content width */
+  margin: 20px auto; /* Center the container */
+  padding: 0 20px; /* Add horizontal padding */
+}
+
+/* Header */
+header h1 {
+  font-size: 2em;
+  margin-bottom: 0.5em;
+  color: #1a202c;
+}
+
+header nav a {
+  text-decoration: none;
+  color: #2b6cb0;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+header nav a:hover {
+  text-decoration: underline;
+  background-color: #ebf4ff;
+}
+
+/* Main Content Sections */
+main section {
+  background-color: #ffffff;
+  padding: 20px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+main h2 {
+  font-size: 1.5em;
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2d3748;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+/* Forms */
+form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+form input[type="text"],
+form input[type="url"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 1em;
+}
+
+form input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.5);
+}
+
+form button[type="submit"] {
+  background-color: #48bb78;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+form button[type="submit"]:hover {
+  background-color: #38a169;
+}
+
+.form-error {
+  color: #c53030;
+  background-color: #fed7d7;
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 15px;
+  border: 1px solid #f56565;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto; /* Allow horizontal scrolling on small screens */
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+th {
+  background-color: #edf2f7;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  color: #4a5568;
+  letter-spacing: 0.05em;
+}
+
+tbody tr:hover {
+  background-color: #f4f7f6;
+}
+
+td a {
+  color: #2b6cb0;
+  text-decoration: none;
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+
+td a:hover {
+  text-decoration: underline;
+  background-color: #ebf4ff;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem; /* 4px */
+}
+
+.status-PENDING {
+  color: #9c4221;
+  background-color: #feebc8; /* yellow */
+}
+.status-IN_PROGRESS {
+  color: #2c5282;
+  background-color: #bee3f8; /* blue */
+}
+.status-SUCCESS {
+  color: #2f855a;
+  background-color: #c6f6d5; /* green */
+}
+.status-FAILURE {
+  color: #9b2c2c;
+  background-color: #fed7d7; /* red */
+}
+.status-ERROR {
+  color: #805ad5;
+  background-color: #e9d8fd; /* purple/pink */
+}
+
+/* Job Log Details */
+dl {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(250px, 1fr)
+  ); /* Responsive grid */
+  gap: 10px 20px;
+}
+
+dt {
+  font-weight: 600;
+  color: #718096;
+}
+
+dd {
+  margin-left: 0; /* Reset default margin */
+  word-break: break-word; /* Prevent long strings from overflowing */
+}
+
+/* Log Output */
+pre {
+  background-color: #1a202c; /* Dark background */
+  color: #e2e8f0; /* Light text */
+  padding: 15px;
+  border-radius: 6px;
+  overflow-x: auto; /* Allow scrolling for long lines */
+  font-family:
+    "MesloLGS Nerd Font Mono", "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 0.875em;
+  line-height: 1.5;
+}
+
+/* Footer */
+footer {
+  margin-top: 40px;
+  text-align: center;
+  color: #718096;
+  font-size: 0.9em;
+}

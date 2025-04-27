@@ -2,22 +2,46 @@ package core
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
+	"text/template"
 	"time"
 
 	"github.com/nireo/mci/pb"
 )
+
+//go:embed templates/*.html
+var templateFS embed.FS
+
+//go:embed static/*
+var staticFS embed.FS
+
+var (
+	templates *template.Template
+	tplerr    error
+)
+
+func init() {
+	templates, tplerr = template.New("").ParseFS(templateFS, "templates/*.html")
+	if tplerr != nil {
+		log.Fatalf("FATAL: Failed to parse HTML templates: %v", tplerr)
+	}
+	log.Println("HTML templates parsed successfully.")
+}
 
 type HttpServer struct {
 	HttpServer      *http.Server
 	shutdownTimeout time.Duration
 	jm              *JobManager
 	pool            *AgentPool
+	logDir          string
 }
 
 // NewServer creates a new Server instance.
@@ -31,9 +55,13 @@ func NewServer(
 		shutdownTimeout: shutdownTimeout,
 		jm:              jm,
 		pool:            pool,
+		logDir:          "logs",
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /jobs", hs.listJobs)
+	staticFileServer := http.FileServer(http.FS(staticFS))
+
+	mux.Handle("GET /static/", http.StripPrefix("/static/", staticFileServer))
+	mux.HandleFunc("GET /jobs", hs.listJobsHandler)
 	mux.HandleFunc("POST /jobs", hs.createJobHandler)
 
 	httpServer := &http.Server{
@@ -95,6 +123,21 @@ func (s *HttpServer) Shutdown() error {
 	return nil
 }
 
+func (hs *HttpServer) renderTemplate(w http.ResponseWriter, name string, data any) {
+	tmpl := templates.Lookup(name)
+	if tmpl == nil {
+		log.Printf("error: template: %s not found", name)
+		http.Error(w, "Internal Server Error: template not found", http.StatusInternalServerError)
+		return
+	}
+
+	err := tmpl.Execute(w, data)
+	if err != nil {
+		log.Printf("error: failed to execute template %s: %v", name, err)
+		http.Error(w, "Internal Server Error: Failed to render page", http.StatusInternalServerError)
+	}
+}
+
 func (hs *HttpServer) createJobHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -123,7 +166,59 @@ func (hs *HttpServer) createJobHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (hs *HttpServer) renderJobsPageWithError(w http.ResponseWriter, formError string) {
+	jobs := hs.jm.ListJobs()
+	data := map[string]any{
+		"Jobs":        jobs,
+		"CurrentYear": time.Now().Year(),
+		"FormError":   formError,
+	}
+	hs.renderTemplate(w, "jobs.html", data)
+}
+
 func (hs *HttpServer) listJobs(w http.ResponseWriter, r *http.Request) {
 	jobs := hs.jm.ListJobs()
 	json.NewEncoder(w).Encode(jobs)
+}
+
+func (hs *HttpServer) listJobsHandler(w http.ResponseWriter, r *http.Request) {
+	hs.renderJobsPageWithError(w, "")
+}
+
+func (hs *HttpServer) getJobLogsHandler(w http.ResponseWriter, r *http.Request) {
+	jobID := r.PathValue("id")
+	if jobID == "" {
+		http.Error(w, "Job ID is required", http.StatusBadRequest)
+		return
+	}
+	jobInfo, ok := hs.jm.GetJob(jobID)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	var logsContent string
+	var logErr error
+	logFilePath := filepath.Join(hs.logDir, fmt.Sprintf("%s.log", jobID))
+	logBytes, err := os.ReadFile(logFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("WARN: Log file not found for job %s: %s", jobID, logFilePath)
+			logsContent = "No log file found."
+		} else {
+			log.Printf("ERROR: Failed to read log file %s: %v", logFilePath, err)
+			logErr = fmt.Errorf("failed to read logs")
+		}
+	} else {
+		logsContent = string(logBytes)
+	}
+
+	// No need to include status badge function
+	data := map[string]any{
+		"JobInfo":     jobInfo,
+		"Logs":        logsContent,
+		"LogError":    logErr,
+		"CurrentYear": time.Now().Year(),
+	}
+	hs.renderTemplate(w, "job_log.html", data)
 }

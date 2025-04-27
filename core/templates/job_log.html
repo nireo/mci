@@ -1,0 +1,50 @@
+{{ template "layout.html" . }}
+
+{{ define "title" }}Job Logs: {{ .JobInfo.Job.Id | printf "%.8s..." }} - {{ block "title" . }}{{ end }}{{ end }}
+
+{{ define "content" }}
+<section>
+    <h2>Job Details</h2>
+    <dl>
+        <div>
+            <dt>Job ID</dt>
+            <dd>{{ .JobInfo.Job.Id }}</dd>
+        </div>
+        <div>
+            <dt>Status</dt>
+            <dd>
+                 <span class="status-badge status-{{ .JobInfo.Status }}">
+                     {{ .JobInfo.Status }}
+                 </span>
+            </dd>
+        </div>
+        <div>
+            <dt>Repository URL</dt>
+            <dd>{{ .JobInfo.Job.RepoUrl }}</dd>
+        </div>
+         <div>
+            <dt>Commit SHA</dt>
+            <dd>{{ .JobInfo.Job.CommitSha }}</dd>
+        </div>
+        <div>
+            <dt>Created At</dt>
+            <dd>{{ .JobInfo.CreatedAt.Format "2006-01-02 15:04:05 MST" }}</dd>
+        </div>
+        <div>
+            <dt>Last Updated</dt>
+            <dd>{{ .JobInfo.UpdatedAt.Format "2006-01-02 15:04:05 MST" }}</dd>
+        </div>
+    </dl>
+</section>
+
+<section>
+    <h2>Job Logs</h2>
+    {{ if .LogError }}
+        <p class="form-error">Error loading logs: {{ .LogError }}</p>
+    {{ else if .Logs }}
+        <pre>{{ .Logs }}</pre>
+    {{ else }}
+        <p>Logs are not available yet or are still loading.</p>
+     {{ end }}
+</section>
+{{ end }}
