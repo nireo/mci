@@ -20,7 +20,7 @@ func main() {
 
 	addrs := strings.Split(*agentServers, ",")
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		log.Fatalf("error starting listener")
 	}

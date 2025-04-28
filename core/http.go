@@ -3,9 +3,7 @@ package core
 import (
 	"context"
 	"embed"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -62,6 +60,7 @@ func NewServer(
 
 	mux.Handle("GET /static/", http.StripPrefix("/static/", staticFileServer))
 	mux.HandleFunc("GET /jobs", hs.listJobsHandler)
+	mux.HandleFunc("GET /jobs/{id}/logs", hs.getJobLogsHandler)
 	mux.HandleFunc("POST /jobs", hs.createJobHandler)
 
 	httpServer := &http.Server{
@@ -139,31 +138,37 @@ func (hs *HttpServer) renderTemplate(w http.ResponseWriter, name string, data an
 }
 
 func (hs *HttpServer) createJobHandler(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		log.Printf("error reading body: %s", err)
-		return
-	}
-	defer r.Body.Close()
-
-	var data *pb.Job
-	err = json.Unmarshal(body, data)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		log.Printf("invalid json: %s", err)
+	if err := r.ParseForm(); err != nil {
+		log.Printf("error: failed to parse form: %v", err)
+		hs.renderJobsPageWithError(w, "failed to parse form data")
 		return
 	}
 
-	info := hs.jm.AddJob(data)
+	repoURL := r.FormValue("repo_url")
+	commitSHA := r.FormValue("commit_sha")
 
-	if err := hs.pool.SelectAndExecuteJob(context.Background(), info.Job); err != nil {
-		http.Error(w, "Error selecting agent", http.StatusInternalServerError)
-		log.Printf("invalid select and execute: %s", err)
+	if repoURL == "" || commitSHA == "" {
+		log.Println("warn: Missing repo_url or commit_sha in form submission")
+		hs.renderJobsPageWithError(w, "Repository URL and Commit SHA are required.")
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	job := &pb.Job{
+		RepoUrl:   repoURL,
+		CommitSha: commitSHA,
+	}
+	info := hs.jm.AddJob(job)
+	log.Printf("INFO: Job created via HTTP: ID=%s, Repo=%s", info.Job.Id, info.Job.RepoUrl)
+	go func() {
+		err := hs.pool.SelectAndExecuteJob(context.Background(), info.Job)
+		if err != nil {
+			log.Printf("ERROR: Failed to initially select agent for job %s: %v", info.Job.Id, err)
+		} else {
+			log.Printf("INFO: Job %s dispatched to an agent.", info.Job.Id)
+		}
+	}()
+
+	http.Redirect(w, r, "/jobs", http.StatusSeeOther)
 }
 
 func (hs *HttpServer) renderJobsPageWithError(w http.ResponseWriter, formError string) {
@@ -174,11 +179,6 @@ func (hs *HttpServer) renderJobsPageWithError(w http.ResponseWriter, formError s
 		"FormError":   formError,
 	}
 	hs.renderTemplate(w, "jobs.html", data)
-}
-
-func (hs *HttpServer) listJobs(w http.ResponseWriter, r *http.Request) {
-	jobs := hs.jm.ListJobs()
-	json.NewEncoder(w).Encode(jobs)
 }
 
 func (hs *HttpServer) listJobsHandler(w http.ResponseWriter, r *http.Request) {
